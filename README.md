@@ -29,6 +29,10 @@ Amend env: section according to the token method in use.
 `GHA_TOKEN: ${{ secrets.GITHUB_TOKEN }}` for automatic token authentication
 `GHA_TOKEN: ${{ secrets.GHA_TOKEN }}` for PAT token authentication
 
+Optional env vars:
+- 'SKIP_LOG_PARSING' - Set to true to skip log parsing, and only send traces to New Relic. Default is false.
+- 'EXCLUDE_ID_IN_PARENT_SPAN' - Set to true to exclude the workflow run id in the parent span name. Default is false.
+
 ```
 name: new-relic-exporter
 

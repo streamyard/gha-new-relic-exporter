@@ -23,6 +23,11 @@ GHA_SERVICE_NAME=os.getenv('GITHUB_REPOSITORY')
 GITHUB_REPOSITORY_OWNER=os.getenv('GITHUB_REPOSITORY_OWNER')
 GHA_RUN_NAME=os.getenv('GHA_RUN_NAME')
 GITHUB_API_URL=os.getenv('GITHUB_API_URL')
+PARSE_LOGS=True
+INCLUDE_ID_IN_PARENT_SPAN_NAME=not "EXCLUDE_ID_IN_PARENT_SPAN" in os.environ or os.getenv('EXCLUDE_ID_IN_PARENT_SPAN').lower() != "true"
+
+if "SKIP_LOG_PARSING" in os.environ and os.getenv('SKIP_LOG_PARSING').lower() == "true":
+    PARSE_LOGS=False
 
 # Check if debug is set
 if "GHA_DEBUG" in os.environ and os.getenv('GHA_DEBUG').lower() == "true":
@@ -95,7 +100,12 @@ if len(job_lst) == 0:
 workflow_run_atts = json.loads(get_workflow_run_by_run_id)
 atts=parse_attributes(workflow_run_atts,"","workflow")
 print("Processing Workflow ->",GHA_RUN_NAME,"run id ->",GHA_RUN_ID)
-p_parent = tracer.start_span(name=str(GHA_RUN_NAME) + " - run: "+str(GHA_RUN_ID),attributes=atts,start_time=do_time(workflow_run_atts['run_started_at']),kind=trace.SpanKind.SERVER)
+
+PARENT_SPAN_NAME = str(GHA_RUN_NAME)
+if INCLUDE_ID_IN_PARENT_SPAN_NAME:
+    PARENT_SPAN_NAME = PARENT_SPAN_NAME + " - run: "+str(GHA_RUN_ID)
+
+p_parent = tracer.start_span(name=PARENT_SPAN_NAME,attributes=atts,start_time=do_time(workflow_run_atts['run_started_at']),kind=trace.SpanKind.SERVER)
 
 # Download logs
 # Have to use python requests due to known issue with ghapi -> https://github.com/fastai/ghapi/issues/119
@@ -106,13 +116,14 @@ req_headers = {
     'X-GitHub-Api-Version': '2022-11-28'
 }
 
-url1=GITHUB_API_URL+"/repos/"+GHA_SERVICE_NAME.split("/")[0]+"/"+GHA_SERVICE_NAME.split("/")[1]+"/actions/runs/"+str(GHA_RUN_ID)+"/logs"
-r1=requests.get(url1,headers=req_headers)
-with open("log.zip",'wb') as output_file:
-    output_file.write(r1.content)
+if PARSE_LOGS:
+    url1=GITHUB_API_URL+"/repos/"+GHA_SERVICE_NAME.split("/")[0]+"/"+GHA_SERVICE_NAME.split("/")[1]+"/actions/runs/"+str(GHA_RUN_ID)+"/logs"
+    r1=requests.get(url1,headers=req_headers)
+    with open("log.zip",'wb') as output_file:
+        output_file.write(r1.content)
 
-with zipfile.ZipFile("log.zip", 'r') as zip_ref:
-    zip_ref.extractall("./logs")
+    with zipfile.ZipFile("log.zip", 'r') as zip_ref:
+        zip_ref.extractall("./logs")
 
 # Jobs trace span
 # Set Jobs tracer and logger
@@ -150,44 +161,45 @@ for job in job_lst:
                 child_1.set_attributes(create_resource_attributes(parse_attributes(step,"","job"),GHA_SERVICE_NAME))
                 with trace.use_span(child_1, end_on_exit=False):
                     # Parse logs
-                    try:
-                        with open ("./logs/"+str(job["name"])+"/"+str(step['number'])+"_"+str(step['name'].replace("/",""))+".txt") as f:
-                            for line in f.readlines():
-                                try:
-                                    line_to_add = line[29:-1].strip()
-                                    len_line_to_add = len(line_to_add)
-                                    timestamp_to_add = line[0:23]
-                                    if len_line_to_add > 0:
-                                        # Convert ISO 8601 to timestamp
-                                        try:
-                                            parsed_t = dp.isoparse(timestamp_to_add)
-                                        except ValueError as e:
-                                            print("Line does not start with a date. Skip for now")
-                                            continue
-                                        unix_timestamp = parsed_t.timestamp()*1000
-                                        if line_to_add.lower().startswith("##[error]"):
-                                            child_1.set_status(Status(StatusCode.ERROR,line_to_add[9:]))
-                                            child_0.set_status(Status(StatusCode.ERROR,"STEP: "+str(step['name'])+" failed"))
-                                            job_logger._log(level=logging.ERROR,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
-                                        elif line_to_add.lower().startswith("##[warning]"):
-                                            job_logger._log(level=logging.WARNING,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
-                                        elif line_to_add.lower().startswith("##[notice]"):
-                                            #Notice (notice): applies to normal but significant conditions that may require monitoring.
-                                            # Applying INFO4 aka 12 -> https://opentelemetry.io/docs/specs/otel/logs/data-model/#displaying-severity
-                                            job_logger._log(level=12,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
-                                        elif line_to_add.lower().startswith("##[debug]"):
-                                            job_logger._log(level=logging.DEBUG,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
-                                        else:
-                                            job_logger._log(level=logging.INFO,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
+                    if PARSE_LOGS:
+                        try:
+                            with open ("./logs/"+str(job["name"])+"/"+str(step['number'])+"_"+str(step['name'].replace("/",""))+".txt") as f:
+                                for line in f.readlines():
+                                    try:
+                                        line_to_add = line[29:-1].strip()
+                                        len_line_to_add = len(line_to_add)
+                                        timestamp_to_add = line[0:23]
+                                        if len_line_to_add > 0:
+                                            # Convert ISO 8601 to timestamp
+                                            try:
+                                                parsed_t = dp.isoparse(timestamp_to_add)
+                                            except ValueError as e:
+                                                print("Line does not start with a date. Skip for now")
+                                                continue
+                                            unix_timestamp = parsed_t.timestamp()*1000
+                                            if line_to_add.lower().startswith("##[error]"):
+                                                child_1.set_status(Status(StatusCode.ERROR,line_to_add[9:]))
+                                                child_0.set_status(Status(StatusCode.ERROR,"STEP: "+str(step['name'])+" failed"))
+                                                job_logger._log(level=logging.ERROR,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
+                                            elif line_to_add.lower().startswith("##[warning]"):
+                                                job_logger._log(level=logging.WARNING,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
+                                            elif line_to_add.lower().startswith("##[notice]"):
+                                                #Notice (notice): applies to normal but significant conditions that may require monitoring.
+                                                # Applying INFO4 aka 12 -> https://opentelemetry.io/docs/specs/otel/logs/data-model/#displaying-severity
+                                                job_logger._log(level=12,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
+                                            elif line_to_add.lower().startswith("##[debug]"):
+                                                job_logger._log(level=logging.DEBUG,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
+                                            else:
+                                                job_logger._log(level=logging.INFO,msg=line_to_add,extra={"log.timestamp":unix_timestamp,"log.time":timestamp_to_add},args="")
 
-                                except Exception as e:
-                                    print("Error exporting log line ERROR: ", e)
-                    except IOError as e:
-                        if step['conclusion'] == 'skipped' or step['conclusion'] == 'cancelled':
-                            print("Log file not expected for this step ->",step['name'],"<- because its status is ->",step['conclusion'])
-                            pass #We don't expect log file to exist
-                        else:
-                            print("ERROR: Log file does not exist: "+str(job["name"])+"/"+str(step['number'])+"_"+str(step['name'].replace("/",""))+".txt")
+                                    except Exception as e:
+                                        print("Error exporting log line ERROR: ", e)
+                        except IOError as e:
+                            if step['conclusion'] == 'skipped' or step['conclusion'] == 'cancelled':
+                                print("Log file not expected for this step ->",step['name'],"<- because its status is ->",step['conclusion'])
+                                pass #We don't expect log file to exist
+                            else:
+                                print("ERROR: Log file does not exist: "+str(job["name"])+"/"+str(step['number'])+"_"+str(step['name'].replace("/",""))+".txt")
 
 
                 if step['conclusion'] == 'skipped' or step['conclusion'] == 'cancelled':
