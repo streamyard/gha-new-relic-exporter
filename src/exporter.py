@@ -29,7 +29,7 @@ INCLUDE_ID_IN_PARENT_SPAN_NAME=True
 if "SKIP_LOG_PARSING" in os.environ and os.getenv('SKIP_LOG_PARSING').lower() == "true":
     PARSE_LOGS=False
 
-if not "EXCLUDE_ID_IN_PARENT_SPAN" in os.environ or os.getenv('EXCLUDE_ID_IN_PARENT_SPAN').lower() != "true":
+if not "EXCLUDE_ID_IN_PARENT_SPAN_NAME" in os.environ or os.getenv('EXCLUDE_ID_IN_PARENT_SPAN_NAME').lower() != "true":
     INCLUDE_ID_IN_PARENT_SPAN_NAME=False
 
 # Check if debug is set
