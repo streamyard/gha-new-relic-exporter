@@ -24,10 +24,13 @@ GITHUB_REPOSITORY_OWNER=os.getenv('GITHUB_REPOSITORY_OWNER')
 GHA_RUN_NAME=os.getenv('GHA_RUN_NAME')
 GITHUB_API_URL=os.getenv('GITHUB_API_URL')
 PARSE_LOGS=True
-INCLUDE_ID_IN_PARENT_SPAN_NAME=not "EXCLUDE_ID_IN_PARENT_SPAN" in os.environ or os.getenv('EXCLUDE_ID_IN_PARENT_SPAN').lower() != "true"
+INCLUDE_ID_IN_PARENT_SPAN_NAME=True
 
 if "SKIP_LOG_PARSING" in os.environ and os.getenv('SKIP_LOG_PARSING').lower() == "true":
     PARSE_LOGS=False
+
+if not "EXCLUDE_ID_IN_PARENT_SPAN" in os.environ or os.getenv('EXCLUDE_ID_IN_PARENT_SPAN').lower() != "true":
+    INCLUDE_ID_IN_PARENT_SPAN_NAME=False
 
 # Check if debug is set
 if "GHA_DEBUG" in os.environ and os.getenv('GHA_DEBUG').lower() == "true":
