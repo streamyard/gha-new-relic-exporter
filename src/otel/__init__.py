@@ -15,14 +15,16 @@ from opentelemetry.sdk.resources import SERVICE_NAME
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
+
 def create_resource_attributes(atts, GLAB_SERVICE_NAME):
-    attributes={SERVICE_NAME: GLAB_SERVICE_NAME}
+    attributes = {SERVICE_NAME: GLAB_SERVICE_NAME}
     for att in atts:
-            attributes[att]=atts[att]
+        attributes[att] = atts[att]
     return attributes
 
+
 def get_logger(endpoint, headers, resource, name):
-    exporter = OTLPLogExporter(endpoint=endpoint,headers=headers)
+    exporter = OTLPLogExporter(endpoint=endpoint, headers=headers)
     logger = logging.getLogger(str(name))
     logger.handlers.clear()
     logger_provider = LoggerProvider(resource=resource)
@@ -33,12 +35,13 @@ def get_logger(endpoint, headers, resource, name):
 
 
 def get_tracer(endpoint, headers, resource, tracer):
-    processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint,headers=headers))
+    processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint, headers=headers))
     tracer = TracerProvider(resource=resource)
     tracer.add_span_processor(processor)
     tracer = trace.get_tracer(__name__, tracer_provider=tracer)
 
     return tracer
+
 
 # todo
 # def get_meter(endpoint, headers, resource, meter):
