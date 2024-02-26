@@ -26,10 +26,10 @@ GITHUB_API_URL=os.getenv('GITHUB_API_URL')
 PARSE_LOGS=True
 INCLUDE_ID_IN_PARENT_SPAN_NAME=True
 
-if "SKIP_LOG_PARSING" in os.environ and os.getenv('SKIP_LOG_PARSING').lower() == "true":
+if "PARSE_LOGS" in os.environ and os.getenv('PARSE_LOGS').lower() == "false":
     PARSE_LOGS=False
 
-if not "EXCLUDE_ID_IN_PARENT_SPAN_NAME" in os.environ or os.getenv('EXCLUDE_ID_IN_PARENT_SPAN_NAME').lower() != "true":
+if not "INCLUDE_ID_IN_PARENT_SPAN_NAME" in os.environ or os.getenv('INCLUDE_ID_IN_PARENT_SPAN_NAME').lower() == "false":
     INCLUDE_ID_IN_PARENT_SPAN_NAME=False
 
 # Check if debug is set
