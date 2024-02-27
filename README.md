@@ -2,6 +2,9 @@
 [![New Relic Experimental header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Experimental.png)](https://opensource.newrelic.com/oss-category/#new-relic-experimental)
 
 
+## How to deploy New Relic Github Actions Exporter for Streamyard
+After merging the PR, latest code needs to be tagged as 'latest', then Streamyard monorepo's CI will pick the change automatically.
+
 ## How to monitor Github Actions with New Relic
 Now, you can monitor your Github Actions with New Relic using Github Actions New Relic Exporter, making it easier to get observability into your CI/CD workflows health and performance.
 
