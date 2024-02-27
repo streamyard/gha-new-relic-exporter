@@ -26,14 +26,10 @@ GHA_SERVICE_NAME = os.getenv("GITHUB_REPOSITORY")
 GITHUB_REPOSITORY_OWNER = os.getenv("GITHUB_REPOSITORY_OWNER")
 GHA_RUN_NAME = os.getenv("GHA_RUN_NAME")
 GITHUB_API_URL = os.getenv("GITHUB_API_URL")
-PARSE_LOGS=True
-INCLUDE_ID_IN_PARENT_SPAN_NAME=True
-
-if "PARSE_LOGS" in os.environ and os.getenv('PARSE_LOGS').lower() == "false":
-    PARSE_LOGS=False
-
-if not "INCLUDE_ID_IN_PARENT_SPAN_NAME" in os.environ or os.getenv('INCLUDE_ID_IN_PARENT_SPAN_NAME').lower() == "false":
-    INCLUDE_ID_IN_PARENT_SPAN_NAME=False
+PARSE_LOGS = os.getenv("PARSE_LOGS", "true").lower() == "true"
+INCLUDE_ID_IN_PARENT_SPAN_NAME = (
+    os.getenv("INCLUDE_ID_IN_PARENT_SPAN_NAME", "true").lower() == "true"
+)
 
 # Check if debug is set
 if "GHA_DEBUG" in os.environ and os.getenv("GHA_DEBUG").lower() == "true":
@@ -117,11 +113,13 @@ if len(job_lst) == 0:
 # Trace parent
 workflow_run_atts = json.loads(get_workflow_run_by_run_id)
 atts = parse_attributes(workflow_run_atts, "", "workflow")
+first_job = job_lst[0] if job_lst else {}
+atts["head_branch"] = first_job.get("head_branch", "unknown")
 print("Processing Workflow ->", GHA_RUN_NAME, "run id ->", GHA_RUN_ID)
 
 PARENT_SPAN_NAME = str(GHA_RUN_NAME)
 if INCLUDE_ID_IN_PARENT_SPAN_NAME:
-    PARENT_SPAN_NAME = PARENT_SPAN_NAME + " - run: "+str(GHA_RUN_ID)
+    PARENT_SPAN_NAME = PARENT_SPAN_NAME + " - run: " + str(GHA_RUN_ID)
 
 p_parent = tracer.start_span(
     name=PARENT_SPAN_NAME,
@@ -246,10 +244,13 @@ for job in job_lst:
                                                 )
                                                 continue
                                             unix_timestamp = parsed_t.timestamp() * 1000
-                                            if line_to_add.lower().startswith("##[error]"):
+                                            if line_to_add.lower().startswith(
+                                                "##[error]"
+                                            ):
                                                 child_1.set_status(
                                                     Status(
-                                                        StatusCode.ERROR, line_to_add[9:]
+                                                        StatusCode.ERROR,
+                                                        line_to_add[9:],
                                                     )
                                                 )
                                                 child_0.set_status(
