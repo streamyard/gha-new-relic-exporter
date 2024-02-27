@@ -92,11 +92,6 @@ global_attributes = {
 }
 
 
-# Set workflow level tracer and logger
-global_resource = Resource(attributes=global_attributes)
-tracer = get_tracer(endpoint, headers, global_resource, "tracer")
-
-
 # Ensure we don't export data for new relic exporters
 workflow_jobs = get_workflow_run_jobs_by_run_id()
 job_lst = []
@@ -114,12 +109,16 @@ if len(job_lst) == 0:
 workflow_run_atts = json.loads(get_workflow_run_by_run_id)
 atts = parse_attributes(workflow_run_atts, "", "workflow")
 first_job = job_lst[0] if job_lst else {}
-atts["head_branch"] = first_job.get("head_branch", "unknown")
+global_attributes["head_branch"] = first_job.get("head_branch", "unknown")
 print("Processing Workflow ->", GHA_RUN_NAME, "run id ->", GHA_RUN_ID)
 
 PARENT_SPAN_NAME = str(GHA_RUN_NAME)
 if INCLUDE_ID_IN_PARENT_SPAN_NAME:
     PARENT_SPAN_NAME = PARENT_SPAN_NAME + " - run: " + str(GHA_RUN_ID)
+
+# Set workflow level tracer and logger
+global_resource = Resource(attributes=global_attributes)
+tracer = get_tracer(endpoint, headers, global_resource, "tracer")
 
 p_parent = tracer.start_span(
     name=PARENT_SPAN_NAME,
