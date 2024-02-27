@@ -37,7 +37,7 @@ headers = "api-key={}".format(Config.NEW_RELIC_LICENSE_KEY)
 
 # Set OTEL resources
 global_attributes = {
-    SERVICE_NAME: "john/testing",
+    SERVICE_NAME: Config.GHA_SERVICE_NAME,
     "workflow_run_id": Config.GHA_RUN_ID,
     "github.source": "github-exporter",
     "github.resource.type": "span",
@@ -75,9 +75,6 @@ if Config.INCLUDE_ID_IN_PARENT_SPAN_NAME:
 
 # Set workflow level tracer and logger
 global_resource = Resource(attributes=global_attributes)
-print("Setting up workflow level tracer and logger")
-print(f"Using endpoint: {endpoint}")
-print(f"Using headers: {headers}")
 tracer = get_tracer(endpoint, headers, global_resource, "tracer")
 
 p_parent = tracer.start_span(
