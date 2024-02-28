@@ -178,13 +178,13 @@ for job in job_lst:
             except Exception as e:
                 print("Unable to process step ->", step["name"], "<- due to error", e)
 
-        child_0.end(end_time=do_time(job.get("name")))
+        child_0.end(end_time=do_time(job.get("completed_at")))
 
         workflow_run_finish_time = do_time(job.get("completed_at"))
 
         print("Finished processing job ->", job.get("name"))
     except Exception as e:
-        print("Unable to process job:", job["name"])
+        print("Unable to process job:", job["name"], "<- due to error", e)
 
 p_parent.end(
     end_time=(
