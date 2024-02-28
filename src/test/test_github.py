@@ -10,7 +10,7 @@ from lib.github_api import GithubApi
 class TestGithubApi:
     @patch("lib.github_api.GhApi")
     def test_get_workflow_run_by_id(self, mock_GhApi):
-        Config.GHA_RUN_ID = 123
+        Config.GHA_RUN_ID = 123  # pyright: ignore
         mock_GhApi.return_value.actions.get_workflow_run.return_value = {
             "id": "some_workflow"
         }
@@ -20,7 +20,7 @@ class TestGithubApi:
 
     @patch("lib.github_api.GhApi")
     def test_get_workflow_run_jobs_by_run_id(self, mock_GhApi):
-        Config.GHA_RUN_ID = 123
+        Config.GHA_RUN_ID = 123  # pyright: ignore
         mock_GhApi.return_value.actions.list_jobs_for_workflow_run.return_value = {
             "jobs": ["job1", "job2"],
             "total_count": 2,

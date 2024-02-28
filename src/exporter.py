@@ -5,10 +5,9 @@ import dateutil.parser as dp
 from opentelemetry import trace
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-from opentelemetry.trace import Status, StatusCode
 
 from lib.config import Config
-from lib.custom_parser import do_fastcore_decode, do_time, parse_attributes
+from lib.custom_parser import do_time, parse_attributes
 from lib.github_api import GithubApi
 from lib.log_parser import download_log_files, parse_log_files
 from lib.otel import create_resource_attributes, get_logger, get_tracer
@@ -46,6 +45,7 @@ global_attributes = {
 
 # Ensure we don't export data for new relic exporters
 workflow_jobs = api.get_workflow_run_jobs_by_run_id()
+workflow_run_finish_time = None
 job_lst = []
 for job in workflow_jobs:
     if str(job["name"]).lower() not in ["new-relic-exporter"]:
@@ -104,7 +104,7 @@ for job in job_lst:
             kind=trace.SpanKind.CONSUMER,
         )
         child_0.set_attributes(
-            create_resource_attributes(
+            create_resource_attributes(  # pyright: ignore
                 parse_attributes(job, "steps", "job"), Config.GHA_SERVICE_NAME
             )
         )
@@ -149,7 +149,7 @@ for job in job_lst:
                     kind=trace.SpanKind.CONSUMER,
                 )
                 child_1.set_attributes(
-                    create_resource_attributes(
+                    create_resource_attributes(  # pyright: ignore
                         parse_attributes(step, "", "job"),
                         Config.GHA_SERVICE_NAME,
                     )
@@ -178,13 +178,21 @@ for job in job_lst:
             except Exception as e:
                 print("Unable to process step ->", step["name"], "<- due to error", e)
 
-        child_0.end(end_time=do_time(job["completed_at"]))
-        workflow_run_finish_time = do_time(job["completed_at"])
-        print("Finished processing job ->", job["name"])
-    except Exception as e:
-        print("Unable to process job ->", job["name"], "<- due to error", e)
+        child_0.end(end_time=do_time(job.get("name")))
 
-p_parent.end(end_time=workflow_run_finish_time)
+        workflow_run_finish_time = do_time(job.get("completed_at"))
+
+        print("Finished processing job ->", job.get("name"))
+    except Exception as e:
+        print("Unable to process job:", job["name"])
+
+p_parent.end(
+    end_time=(
+        workflow_run_finish_time
+        if workflow_run_finish_time
+        else do_time(workflow_run_atts["updated_at"])
+    )
+)
 print(
     "Finished processing Workflow ->",
     Config.GHA_RUN_NAME,
