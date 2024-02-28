@@ -1,11 +1,11 @@
-
 [![New Relic Experimental header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Experimental.png)](https://opensource.newrelic.com/oss-category/#new-relic-experimental)
 
-
 ## How to deploy New Relic Github Actions Exporter for Streamyard
+
 After merging the PR, latest code needs to be tagged as 'latest', then Streamyard monorepo's CI will pick the change automatically.
 
 ## How to monitor Github Actions with New Relic
+
 Now, you can monitor your Github Actions with New Relic using Github Actions New Relic Exporter, making it easier to get observability into your CI/CD workflows health and performance.
 
 You will be able to:
@@ -15,13 +15,11 @@ You will be able to:
 - Pinpoint where issues are coming from in your workflows
 - Create alerts on your workflows.
 
-
 ## How to
 
 Configuring the exporter
 
 Before setting up the integration, you will need a [New Relic license/ingest API key](https://docs.newrelic.com/docs/apis/intro-apis/new-relic-api-keys/#license-key).
-
 
 1. Configure your New Relic license key as a secret in your repository, and call it `NEW_RELIC_LICENSE_KEY`
 2. The exporter uses automatic token authentication by default, for this you need to ensure that `GITHUB_TOKEN` has at least read access to the action scope. Alternatively, you can use a Personal Access Token, in this case, configure your PAT token as secret in your repository, called it `GHA_TOKEN`
@@ -33,6 +31,7 @@ Amend env: section according to the token method in use.
 `GHA_TOKEN: ${{ secrets.GHA_TOKEN }}` for PAT token authentication
 
 Optional env vars:
+
 - 'PARSE_LOGS' - Set to false to skip log parsing, and only send traces to New Relic. Default is true.
 - 'INCLUDE_ID_IN_PARENT_SPAN_NAME' - Set to false to exclude the workflow run id in the parent span name. Default is true.
 
@@ -74,7 +73,7 @@ Each workflow's run/execution steps can be viewed as spans, and logs are also ca
 ![SingleTrace](screenshots/single_trace.png)
 ![Logs](screenshots/logs.png)
 
-## Troubleshooting 
+## Troubleshooting
 
 - Configure `GHA_DEBUG` as secret in your repository and set it to true
 - Add GHA_DEBUG: ${{ secrets.GHA_DEBUG }} to your env configuration block.
@@ -89,8 +88,13 @@ As noted in our [security policy](../../security/policy), New Relic is committed
 
 If you believe you have found a security vulnerability in this project or any of New Relic's products or websites, we welcome and greatly appreciate you reporting it to New Relic through [HackerOne](https://hackerone.com/newrelic).
 
+## Testing
+
+- Ensure you have pytest installed, if not, run `pip install pytest`
+- From the root of the repository, run `pytest` to run the tests
+
 ## License
 
 Github Actions New Relic Exporter is licensed under the [Apache 2.0](http://apache.org/licenses/LICENSE-2.0.txt) License.
 
->Github Actions New Relic Exporter also use source code from third-party libraries. You can find full details on which libraries are used and the terms under which they are licensed in the third-party notices document.
+> Github Actions New Relic Exporter also use source code from third-party libraries. You can find full details on which libraries are used and the terms under which they are licensed in the third-party notices document.

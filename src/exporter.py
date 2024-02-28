@@ -57,11 +57,17 @@ if len(job_lst) == 0:
     )
     exit(0)
 
-# Trace parent
 workflow_run_atts = json.loads(api.get_workflow_run_by_id())
 atts = parse_attributes(workflow_run_atts, "", "workflow")
 first_job = job_lst[0] if job_lst else {}
 global_attributes["head_branch"] = first_job.get("head_branch", "unknown")
+commits_included = api.get_commits_included_in_workflow_run(
+    workflow_run_atts, global_attributes["head_branch"]
+)
+
+if commits_included:
+    global_attributes["commit_count"] = len(commits_included)
+
 print(
     "Processing Workflow ->",
     Config.GHA_RUN_NAME,
@@ -77,6 +83,7 @@ if Config.INCLUDE_ID_IN_PARENT_SPAN_NAME:
 global_resource = Resource(attributes=global_attributes)
 tracer = get_tracer(endpoint, headers, global_resource, "tracer")
 
+# Trace parent
 p_parent = tracer.start_span(
     name=PARENT_SPAN_NAME,
     attributes=atts,
